@@ -5,7 +5,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.server.ResponseStatusException;
 
 @Getter
-
 public class MarvelApiException extends ResponseStatusException {
 
     private final ResponseEntity response;

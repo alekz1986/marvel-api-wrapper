@@ -9,13 +9,13 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.reactive.function.client.*;
 import reactor.core.publisher.Mono;
 
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -39,16 +39,25 @@ class WebClientUtilTest {
 
     @ParameterizedTest
     @MethodSource("statusParams")
-    void testErrorHandlerWhenRawStatusIsNotSuccessThrowException(int rawStatusCode, Class<? extends Throwable> expected) {
+    void testErrorHandlerWhenRawStatusIsNotSuccessThrowException(int rawStatusCode, Class<? extends MarvelApiException> expected) {
         Function<ClientResponse, Mono<ClientResponse>> function = WebClientUtil.errorHandlerFunction();
         ClientResponse clientResponse = ClientResponse
                 .create(rawStatusCode, ExchangeStrategies.withDefaults())
                 .build();
 
-        Throwable throwableResponse = assertThrows(expected,
+        MarvelApiException exception = assertThrows(expected,
                 () -> function.apply(clientResponse).block());
 
-        assertEquals(expected, throwableResponse.getClass());
+        assertAll(
+                () -> assertEquals(expected, exception.getClass()),
+                () -> assertEquals(rawStatusCode, exception.getResponse().getStatusCodeValue()),
+                () -> { if (exception instanceof MarvelUnprocessableException) {
+                    MarvelUnprocessableException ex = (MarvelUnprocessableException) exception;
+                    assertEquals(ex.getRealRawStatus(), rawStatusCode);
+                    assertEquals(HttpStatus.UNPROCESSABLE_ENTITY.value(), ex.getRawStatusCode());
+                }}
+
+        );
     }
 
 
