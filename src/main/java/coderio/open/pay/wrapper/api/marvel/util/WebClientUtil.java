@@ -4,16 +4,17 @@ import coderio.open.pay.wrapper.api.marvel.config.properties.KeyQueryParams;
 import coderio.open.pay.wrapper.api.marvel.exception.MarvelApiException;
 import coderio.open.pay.wrapper.api.marvel.exception.MarvelUnprocessableException;
 import org.springframework.web.reactive.function.client.ClientRequest;
-import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
+import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
 import java.util.Map;
+import java.util.function.Function;
 
 public class WebClientUtil {
 
-    public static ExchangeFilterFunction errorHandler() {
-        return ExchangeFilterFunction.ofResponseProcessor(clientResponse -> {
+    public static Function<ClientResponse, Mono<ClientResponse>> errorHandlerFunction() {
+        return clientResponse -> {
             int rawStatus = clientResponse.rawStatusCode();
 
             if (rawStatus>=500 && rawStatus<=599) {
@@ -27,11 +28,11 @@ public class WebClientUtil {
             }
 
             return Mono.just(clientResponse);
-        });
+        };
     }
 
-    public static ExchangeFilterFunction keyParams(KeyQueryParams keyQueryParams) {
-        return ExchangeFilterFunction.ofRequestProcessor(clientRequest -> {
+    public static Function<ClientRequest, Mono<ClientRequest>> keyParamFunction(KeyQueryParams keyQueryParams) {
+        return clientRequest -> {
             UriComponentsBuilder uriBuilder = UriComponentsBuilder
                     .fromUri(clientRequest.url());
 
@@ -41,8 +42,7 @@ public class WebClientUtil {
                     .url(uriBuilder.build().toUri()).build();
 
             return Mono.just(newRequest);
-        });
-
+        };
     }
 
 
